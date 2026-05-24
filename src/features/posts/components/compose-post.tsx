@@ -27,7 +27,7 @@ export function ComposePost() {
   };
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-24">
       <form onSubmit={handleSubmit}>
         <CardContent>
           <textarea

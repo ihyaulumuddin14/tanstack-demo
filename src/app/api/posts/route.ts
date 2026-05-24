@@ -19,6 +19,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const cursor = searchParams.get("cursor");
   const limitParam = Number(searchParams.get("limit"));
+  const searchQuery = searchParams.get("query")?.trim();
   const limit =
     Number.isFinite(limitParam) && limitParam > 0
       ? Math.min(limitParam, 20)
@@ -30,6 +31,10 @@ export async function GET(req: Request) {
   await delay(1500);
 
   const query: Record<string, unknown> = {};
+
+  if (searchQuery) {
+    query.content = { $regex: searchQuery, $options: "i" };
+  }
 
   if (cursor && ObjectId.isValid(cursor)) {
     query._id = { $lt: new ObjectId(cursor) };

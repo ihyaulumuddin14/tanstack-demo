@@ -8,6 +8,7 @@ export interface GetPostsResponse {
 export interface GetPostsParams {
   cursor?: string | null;
   limit?: number;
+  query?: string;
 }
 
 export async function getPosts(
@@ -21,6 +22,10 @@ export async function getPosts(
 
   if (params.limit) {
     searchParams.set("limit", String(params.limit));
+  }
+
+  if (params.query) {
+    searchParams.set("query", params.query);
   }
 
   const query = searchParams.toString();

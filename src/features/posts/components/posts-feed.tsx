@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useInfinitePosts } from "../hooks/use-infinite-posts";
 import { useLikePost } from "../hooks/use-like-post";
 import { useUserById } from "@/features/auth/hooks/use-user-by-id";
@@ -7,6 +8,8 @@ import type { IPost } from "../types";
 import { Loader2, AlertCircle, RefreshCw, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type PostCardProps = {
   post: IPost;
@@ -96,6 +99,9 @@ function PostCard({ post, likeMutation }: PostCardProps) {
 }
 
 export function PostsFeed() {
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedQuery = useDebounce(searchInput.trim(), 500);
+
   // isPending = First time loading (no cache yet)
   // isFetching = Any time a request is in flight (including background refetches)
   const {
@@ -107,17 +113,60 @@ export function PostsFeed() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfinitePosts();
+  } = useInfinitePosts(debouncedQuery);
   const likeMutation = useLikePost();
   const posts = data?.pages.flatMap((page) => page.posts) ?? [];
   const isBackgroundFetching = isFetching && !isFetchingNextPage;
+  const trimmedInput = searchInput.trim();
+  const isDebouncing = trimmedInput !== debouncedQuery;
+
+  const header = (
+    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 className="text-sm font-semibold text-foreground">Search posts</h2>
+        <p className="text-xs text-muted-foreground">
+          Results update as you type.
+        </p>
+      </div>
+      <div className="flex flex-col items-start gap-1 sm:items-end">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search by content..."
+            className="sm:w-64"
+            aria-label="Search posts"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setSearchInput("")}
+            disabled={!searchInput}
+          >
+            Clear
+          </Button>
+        </div>
+        <span className="text-[11px] text-muted-foreground">
+          {isDebouncing
+            ? "Debouncing input..."
+            : debouncedQuery
+              ? `Query: "${debouncedQuery}"`
+              : "Showing all posts"}
+        </span>
+      </div>
+    </div>
+  );
 
   // 1. LOADING STATE: Shown ONLY when we have no data in cache
   if (isPending) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-muted-foreground">
-        <Loader2 className="mb-4 size-8 animate-spin" />
-        <p className="text-sm font-medium">Fetching feed...</p>
+      <div>
+        {header}
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-muted-foreground">
+          <Loader2 className="mb-4 size-8 animate-spin" />
+          <p className="text-sm font-medium">Fetching feed...</p>
+        </div>
       </div>
     );
   }
@@ -125,10 +174,13 @@ export function PostsFeed() {
   // 2. ERROR STATE
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-destructive/50 bg-destructive/5 py-16 text-destructive">
-        <AlertCircle className="mb-4 size-8" />
-        <p className="text-sm font-medium">Error loading posts</p>
-        <p className="mt-1 text-xs opacity-80">{error.message}</p>
+      <div>
+        {header}
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-destructive/50 bg-destructive/5 py-16 text-destructive">
+          <AlertCircle className="mb-4 size-8" />
+          <p className="text-sm font-medium">Error loading posts</p>
+          <p className="mt-1 text-xs opacity-80">{error.message}</p>
+        </div>
       </div>
     );
   }
@@ -136,19 +188,27 @@ export function PostsFeed() {
   // 3. EMPTY STATE
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-16 text-muted-foreground">
-        <p className="text-sm font-medium">No posts yet.</p>
-        <p className="mt-1 text-xs opacity-80">
-          Be the first to post something!
-        </p>
+      <div>
+        {header}
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-16 text-muted-foreground">
+          <p className="text-sm font-medium">
+            {debouncedQuery ? "No matches found." : "No posts yet."}
+          </p>
+          <p className="mt-1 text-xs opacity-80">
+            {debouncedQuery
+              ? "Try a different search term."
+              : "Be the first to post something!"}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="relative space-y-4">
+      {header}
       {isBackgroundFetching && (
-        <div className="absolute -top-8 right-0 flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary shadow-sm">
+        <div className="absolute -top-12 right-0 flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary shadow-sm">
           <RefreshCw className="size-3 animate-spin" />
           Background Refetching
         </div>
