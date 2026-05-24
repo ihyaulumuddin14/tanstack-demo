@@ -45,7 +45,7 @@ export function ComposePost() {
 
       <div
         className={`overflow-hidden transition-all duration-200 ${
-          isOpen ? "max-h-[420px] opacity-100" : "max-h-0 opacity-0"
+          isOpen ? "max-h-105 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <form onSubmit={handleSubmit}>
