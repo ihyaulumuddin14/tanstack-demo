@@ -2,14 +2,6 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useMutation } from "@tanstack/react-query";
 
-/**
- * Provides a signOut mutation to end the current session.
- * Uses TanStack Query useMutation for isPending state.
- *
- * Usage:
- *   const { mutate: signOut, isPending } = useSignOut();
- *   signOut();
- */
 export function useSignOut() {
   const router = useRouter();
 
