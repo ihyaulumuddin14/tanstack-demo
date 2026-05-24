@@ -46,7 +46,9 @@ export function PostDetailPage({ postId }: PostDetailPageProps) {
   return (
     <Card>
       <CardContent className="space-y-3 p-6">
-        <div className="text-xs font-medium text-muted-foreground">Post Detail</div>
+        <div className="text-xs font-medium text-muted-foreground">
+          Post Detail
+        </div>
         <p className="whitespace-pre-wrap text-sm leading-relaxed sm:text-base">
           {data.content}
         </p>

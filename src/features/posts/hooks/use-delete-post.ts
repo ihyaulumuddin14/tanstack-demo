@@ -6,10 +6,9 @@ import type { GetPostsResponse } from "../api/get-posts";
 import type { IPost } from "../types";
 
 type DeletePostContext = {
-  previousFeeds?: Array<[
-    readonly unknown[],
-    InfiniteData<GetPostsResponse> | undefined,
-  ]>;
+  previousFeeds?: Array<
+    [readonly unknown[], InfiniteData<GetPostsResponse> | undefined]
+  >;
   previousDetail?: IPost | undefined;
 };
 
@@ -21,7 +20,9 @@ export function useDeletePost() {
 
     onMutate: async (input: DeletePostInput): Promise<DeletePostContext> => {
       await queryClient.cancelQueries({ queryKey: postKeys.search("") });
-      await queryClient.cancelQueries({ queryKey: postKeys.detail(input.postId) });
+      await queryClient.cancelQueries({
+        queryKey: postKeys.detail(input.postId),
+      });
 
       const previousFeeds = queryClient.getQueriesData<
         InfiniteData<GetPostsResponse>
@@ -72,7 +73,9 @@ export function useDeletePost() {
         queryKey: postKeys.search(""),
         refetchType: "inactive",
       });
-      queryClient.invalidateQueries({ queryKey: postKeys.detail(input.postId) });
+      queryClient.invalidateQueries({
+        queryKey: postKeys.detail(input.postId),
+      });
     },
   });
 }

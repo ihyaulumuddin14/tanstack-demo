@@ -147,7 +147,11 @@ function PostCard({ post, likeMutation, currentUserId }: PostCardProps) {
               aria-expanded={isOpen}
               className="text-muted-foreground"
             >
-              {isOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+              {isOpen ? (
+                <ChevronUp className="size-3" />
+              ) : (
+                <ChevronDown className="size-3" />
+              )}
               {isOpen ? "Hide" : "Details"}
             </Button>
           </div>
@@ -203,7 +207,9 @@ function PostCard({ post, likeMutation, currentUserId }: PostCardProps) {
                       type="button"
                       size="sm"
                       variant="destructive"
-                      onClick={() => deleteMutation.mutate({ postId: post._id })}
+                      onClick={() =>
+                        deleteMutation.mutate({ postId: post._id })
+                      }
                       disabled={deleteMutation.isPending}
                     >
                       <Trash2 className="size-3" />

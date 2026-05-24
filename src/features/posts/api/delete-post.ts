@@ -2,7 +2,9 @@ export interface DeletePostInput {
   postId: string;
 }
 
-export async function deletePost(input: DeletePostInput): Promise<{ ok: true }> {
+export async function deletePost(
+  input: DeletePostInput,
+): Promise<{ ok: true }> {
   const response = await fetch(`/api/posts/${input.postId}`, {
     method: "DELETE",
   });

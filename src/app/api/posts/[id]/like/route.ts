@@ -69,8 +69,8 @@ export async function PATCH(
     ...plain,
     _id: plain._id?.toString?.() ?? plain._id,
     authorId: plain.authorId?.toString?.() ?? plain.authorId,
-    likedBy,
-    likesCount: plain.likesCount ?? likedBy.length ?? 0,
+    likedBy: likedByResult,
+    likesCount: plain.likesCount ?? likedByResult.length ?? 0,
     likedByMe,
   });
 }

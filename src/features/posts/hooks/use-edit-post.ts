@@ -6,10 +6,9 @@ import type { GetPostsResponse } from "../api/get-posts";
 import type { IPost } from "../types";
 
 type EditPostContext = {
-  previousFeeds?: Array<[
-    readonly unknown[],
-    InfiniteData<GetPostsResponse> | undefined,
-  ]>;
+  previousFeeds?: Array<
+    [readonly unknown[], InfiniteData<GetPostsResponse> | undefined]
+  >;
   previousDetail?: IPost | undefined;
 };
 
@@ -21,7 +20,9 @@ export function useEditPost() {
 
     onMutate: async (input: UpdatePostInput): Promise<EditPostContext> => {
       await queryClient.cancelQueries({ queryKey: postKeys.search("") });
-      await queryClient.cancelQueries({ queryKey: postKeys.detail(input.postId) });
+      await queryClient.cancelQueries({
+        queryKey: postKeys.detail(input.postId),
+      });
 
       const previousFeeds = queryClient.getQueriesData<
         InfiniteData<GetPostsResponse>
