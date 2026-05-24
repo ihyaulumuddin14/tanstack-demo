@@ -6,6 +6,7 @@ import { Loader2, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/hooks/use-session";
 import { useSignOut } from "@/features/auth/hooks/use-sign-out";
+import { ComposePost } from "@/features/posts/components/compose-post";
 import { PostsFeed } from "@/features/posts/components/posts-feed";
 // Note: We'll re-integrate useLikePost later when we implement the mutation correctly.
 
@@ -61,6 +62,8 @@ export default function HomePage() {
           )}
         </Button>
       </div>
+
+      <ComposePost />
 
       {/* Posts Feed Component */}
       <PostsFeed />
