@@ -1,14 +1,14 @@
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useMutation } from "@tanstack/react-query";
 
 /**
- * Provides a signUp function for email/password registration.
+ * Provides a signUp mutation for email/password registration.
+ * Uses TanStack Query useMutation for isPending and error state.
  *
  * Usage:
- *   const { signUp, isPending, error } = useSignUp();
- *   await signUp({ name, email, password });
+ *   const { mutate: signUp, isPending, error } = useSignUp();
+ *   signUp({ name, email, password });
  */
 export function useSignUp() {
   const router = useRouter();
@@ -23,14 +23,10 @@ export function useSignUp() {
       email: string;
       password: string;
     }) => {
-      const result = await authClient.signUp.email({
-        name,
-        email,
-        password,
-      });
+      const result = await authClient.signUp.email({ name, email, password });
 
       if (result.error) {
-        throw new Error(result.error.message);
+        throw new Error(result.error.message ?? "Failed to create account.");
       }
 
       return result;
@@ -41,38 +37,4 @@ export function useSignUp() {
       router.refresh();
     },
   });
-
-  // const [isPending, setIsPending] = useState(false);
-  // const [error, setError] = useState<string | null>(null);
-
-  // async function signUp({
-  //   name,
-  //   email,
-  //   password,
-  // }: {
-  //   name: string;
-  //   email: string;
-  //   password: string;
-  // }) {
-  //   setIsPending(true);
-  //   setError(null);
-
-  //   const { error: authError } = await authClient.signUp.email({
-  //     name,
-  //     email,
-  //     password,
-  //   });
-
-  //   setIsPending(false);
-
-  //   if (authError) {
-  //     setError(authError.message ?? "Failed to create account. Please try again.");
-  //     return;
-  //   }
-
-  //   router.push("/");
-  //   router.refresh();
-  // }
-
-  // return { signUp, isPending, error };
 }

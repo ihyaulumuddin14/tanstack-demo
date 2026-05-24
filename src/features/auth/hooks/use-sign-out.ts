@@ -1,25 +1,32 @@
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { useMutation } from "@tanstack/react-query";
 
 /**
- * Provides a signOut function to end the current session.
+ * Provides a signOut mutation to end the current session.
+ * Uses TanStack Query useMutation for isPending state.
  *
  * Usage:
- *   const { signOut, isPending } = useSignOut();
- *   await signOut();
+ *   const { mutate: signOut, isPending } = useSignOut();
+ *   signOut();
  */
 export function useSignOut() {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
 
-  async function signOut() {
-    setIsPending(true);
-    await authClient.signOut();
-    setIsPending(false);
-    router.push("/sign-in");
-    router.refresh();
-  }
+  return useMutation({
+    mutationFn: async () => {
+      const result = await authClient.signOut();
 
-  return { signOut, isPending };
+      if (result.error) {
+        throw new Error(result.error.message ?? "Failed to sign out.");
+      }
+
+      return result;
+    },
+
+    onSuccess: () => {
+      router.push("/sign-in");
+      router.refresh();
+    },
+  });
 }

@@ -1,44 +1,38 @@
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { useMutation } from "@tanstack/react-query";
 
 /**
- * Provides a signIn function for email/password authentication.
+ * Provides a signIn mutation for email/password authentication.
+ * Uses TanStack Query useMutation for isPending and error state.
  *
  * Usage:
- *   const { signIn, isPending, error } = useSignIn();
- *   await signIn({ email, password });
+ *   const { mutate: signIn, isPending, error } = useSignIn();
+ *   signIn({ email, password });
  */
 export function useSignIn() {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  async function signIn({
-    email,
-    password,
-  }: {
-    email: string;
-    password: string;
-  }) {
-    setIsPending(true);
-    setError(null);
-
-    const { error: authError } = await authClient.signIn.email({
+  return useMutation({
+    mutationFn: async ({
       email,
       password,
-    });
+    }: {
+      email: string;
+      password: string;
+    }) => {
+      const result = await authClient.signIn.email({ email, password });
 
-    setIsPending(false);
+      if (result.error) {
+        throw new Error(result.error.message ?? "Failed to sign in.");
+      }
 
-    if (authError) {
-      setError(authError.message ?? "Failed to sign in. Please try again.");
-      return;
-    }
+      return result;
+    },
 
-    router.push("/");
-    router.refresh();
-  }
-
-  return { signIn, isPending, error };
+    onSuccess: () => {
+      router.push("/");
+      router.refresh();
+    },
+  });
 }

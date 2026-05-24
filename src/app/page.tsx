@@ -12,7 +12,7 @@ import { useSignOut } from "@/features/auth/hooks/use-sign-out";
 export default function HomePage() {
   const router = useRouter();
   const { user, isPending: sessionPending } = useSession();
-  const { signOut, isPending: signOutPending } = useSignOut();
+  const { mutate: signOut, isPending: signOutPending } = useSignOut();
 
   const { data, isLoading } = usePosts();
   const likeMutation = useLikePost();

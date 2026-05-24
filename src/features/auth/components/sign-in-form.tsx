@@ -17,7 +17,7 @@ import {
 import { useSignIn } from "@/features/auth/hooks/use-sign-in";
 
 export function SignInForm() {
-  const { signIn, isPending, error } = useSignIn();
+  const { mutateAsync: signIn, isPending, error } = useSignIn();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +44,7 @@ export function SignInForm() {
           {error && (
             <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <span>{error}</span>
+              <span>{error.message ?? "Failed to sign in. Please try again."}</span>
             </div>
           )}
 
