@@ -1,6 +1,6 @@
 import { connectDB } from "@/db/connection";
 import { Post } from "@/db/models/post.model";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { Types } from "mongoose";
 import { headers } from "next/headers";
@@ -13,6 +13,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
