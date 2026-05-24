@@ -7,4 +7,8 @@ const db = client.db();
 
 export const auth = betterAuth({
   database: mongodbAdapter(db),
+  emailAndPassword: {
+    enabled: true,
+  },
+  trustedOrigins: [process.env.NEXT_PUBLIC_AUTH_URL!],
 });
