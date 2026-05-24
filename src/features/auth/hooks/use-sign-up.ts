@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { useMutation } from "@tanstack/react-query";
+import { initNotifications } from "@/features/notifications/api/init-notifications";
 
 export function useSignUp() {
   const router = useRouter();
@@ -24,7 +25,14 @@ export function useSignUp() {
       return result;
     },
 
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Initialize server-side notification state after registration.
+      // Polling needs persisted server state (not just optimistic cache).
+      try {
+        await initNotifications();
+      } catch {
+        // Keep signup flow resilient; polling can recover on next session.
+      }
       router.push("/");
       router.refresh();
     },

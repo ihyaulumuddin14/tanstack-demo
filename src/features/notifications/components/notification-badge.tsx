@@ -5,12 +5,12 @@ import { useNotifications } from "@/features/notifications/hooks/use-notificatio
 
 export function NotificationBadge() {
   const { user } = useSession();
-  const { data, isFetching, isPending } = useNotifications(user?.id);
+  const { data, isLoading, isPending } = useNotifications(user?.id);
 
   if (!user) return null;
 
   const count = data?.count ?? 0;
-  const showSyncing = isFetching && !isPending;
+  const showSyncing = isLoading && !isPending;
 
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground">
