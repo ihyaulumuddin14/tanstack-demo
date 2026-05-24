@@ -22,7 +22,7 @@ export function ComposePost() {
       { content: trimmedContent },
       {
         onSuccess: () => setContent(""),
-      }
+      },
     );
   };
 
@@ -42,10 +42,16 @@ export function ComposePost() {
         <CardFooter className="flex items-center justify-between border-t">
           <div className="text-xs text-muted-foreground">
             {isError
-              ? (error instanceof Error ? error.message : "Failed to post")
+              ? error instanceof Error
+                ? error.message
+                : "Failed to post"
               : "Posts appear instantly with optimistic updates."}
           </div>
-          <Button type="submit" size="sm" disabled={!canSubmit}>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!canSubmit}
+          >
             {isPending ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (

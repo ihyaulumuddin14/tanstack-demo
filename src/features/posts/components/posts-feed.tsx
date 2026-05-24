@@ -1,13 +1,16 @@
 "use client";
 
 import { usePosts } from "../hooks/use-posts";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { useLikePost } from "../hooks/use-like-post";
+import { Loader2, AlertCircle, RefreshCw, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function PostsFeed() {
   // isPending = First time loading (no cache yet)
   // isFetching = Any time a request is in flight (including background refetches)
   const { data, isPending, isError, error, isFetching } = usePosts();
+  const likeMutation = useLikePost();
 
   // 1. LOADING STATE: Shown ONLY when we have no data in cache
   if (isPending) {
@@ -35,7 +38,9 @@ export function PostsFeed() {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-16 text-muted-foreground">
         <p className="text-sm font-medium">No posts yet.</p>
-        <p className="mt-1 text-xs opacity-80">Be the first to post something!</p>
+        <p className="mt-1 text-xs opacity-80">
+          Be the first to post something!
+        </p>
       </div>
     );
   }
@@ -49,21 +54,57 @@ export function PostsFeed() {
         </div>
       )}
 
-      {data.posts.map((post) => (
-        <Card key={post._id} className="transition-shadow hover:shadow-md">
-          <CardContent className="p-4 sm:p-6">
-            <p className="whitespace-pre-wrap text-sm leading-relaxed sm:text-base">
-              {post.content}
-            </p>
-            <div className="mt-4 flex items-center justify-between text-xs font-medium text-muted-foreground">
-              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-              <span className="rounded-full bg-muted px-2 py-0.5">
-                ❤️ {post.likes}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      {data.posts.map((post) => {
+        const likedByMe = post.likedByMe ?? false;
+        const isMutatingPost =
+          likeMutation.isPending && likeMutation.variables?.postId === post._id;
+        const nextAction = likedByMe ? "unlike" : "like";
+
+        return (
+          <Card
+            key={post._id}
+            className="transition-shadow hover:shadow-md"
+          >
+            <CardContent className="p-4 sm:p-6">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed sm:text-base">
+                {post.content}
+              </p>
+              <div className="mt-4 flex items-center justify-between text-xs font-medium text-muted-foreground">
+                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={
+                    likedByMe ? "text-rose-600" : "text-muted-foreground"
+                  }
+                  aria-pressed={likedByMe}
+                  disabled={isMutatingPost}
+                  onClick={() =>
+                    likeMutation.mutate({
+                      postId: post._id,
+                      action: nextAction,
+                    })
+                  }
+                >
+                  {isMutatingPost ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Heart
+                      className={
+                        likedByMe
+                          ? "size-3 text-rose-600 fill-rose-600"
+                          : "size-3"
+                      }
+                    />
+                  )}
+                  {likedByMe ? "Unlike" : "Like"} {post.likes}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

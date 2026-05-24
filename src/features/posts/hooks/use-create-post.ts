@@ -19,7 +19,7 @@ export function useCreatePost() {
       await queryClient.cancelQueries({ queryKey: postKeys.feed() });
 
       const previousFeed = queryClient.getQueryData<GetPostsResponse>(
-        postKeys.feed()
+        postKeys.feed(),
       );
 
       const optimisticPost: IPost = {
@@ -61,12 +61,12 @@ export function useCreatePost() {
         }
 
         const hasOptimistic = old.posts.some(
-          (post) => post._id === context?.optimisticId
+          (post) => post._id === context?.optimisticId,
         );
 
         const posts = hasOptimistic
           ? old.posts.map((post) =>
-              post._id === context?.optimisticId ? createdPost : post
+              post._id === context?.optimisticId ? createdPost : post,
             )
           : [createdPost, ...old.posts];
 
