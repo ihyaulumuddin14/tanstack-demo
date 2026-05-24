@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/features/auth/hooks/use-session";
 import { useSignOut } from "@/features/auth/hooks/use-sign-out";
+import { NotificationBadge } from "@/features/notifications/components/notification-badge";
 import { ComposePost } from "@/features/posts/components/compose-post";
 import { PostsFeed } from "@/features/posts/components/posts-feed";
 import { Loader2, LogOut, User } from "lucide-react";
@@ -33,22 +34,25 @@ export function HomeClient() {
           </p>
         </div>
 
-        <Button
-          id="signout-btn"
-          variant="outline"
-          size="sm"
-          onClick={() => signOut()}
-          disabled={signOutPending}
-        >
-          {signOutPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <>
-              <LogOut className="size-4" />
-              Sign out
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-3">
+          <NotificationBadge />
+          <Button
+            id="signout-btn"
+            variant="outline"
+            size="sm"
+            onClick={() => signOut()}
+            disabled={signOutPending}
+          >
+            {signOutPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <>
+                <LogOut className="size-4" />
+                Sign out
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <ComposePost />
