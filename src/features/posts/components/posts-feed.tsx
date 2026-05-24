@@ -13,6 +13,29 @@ type PostCardProps = {
   likeMutation: ReturnType<typeof useLikePost>;
 };
 
+function formatPostAge(isoDate: string) {
+  const createdAt = new Date(isoDate);
+  const timestamp = createdAt.getTime();
+
+  if (Number.isNaN(timestamp)) return "Posted earlier";
+
+  const diffMs = Math.max(0, Date.now() - timestamp);
+
+  if (diffMs < 60 * 1000) return "Posted recently";
+
+  const minutes = Math.floor(diffMs / (60 * 1000));
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+
+  const hours = Math.floor(diffMs / (60 * 60 * 1000));
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  return "Posted earlier";
+}
+
 function PostCard({ post, likeMutation }: PostCardProps) {
   const { data: author, isPending: isAuthorPending } = useUserById(
     post.authorId,
@@ -25,6 +48,7 @@ function PostCard({ post, likeMutation }: PostCardProps) {
   const isMutatingPost =
     likeMutation.isPending && likeMutation.variables?.postId === post._id;
   const nextAction = likedByMe ? "unlike" : "like";
+  const timeLabel = formatPostAge(post.createdAt);
 
   return (
     <Card
@@ -37,7 +61,7 @@ function PostCard({ post, likeMutation }: PostCardProps) {
         </p>
         <div className="mt-4 flex items-center justify-between text-xs font-medium text-muted-foreground">
           <div className="flex items-center gap-3">
-            <span>Posted recently</span>
+            <span>{timeLabel}</span>
             <span>by {authorLabel}</span>
           </div>
           <Button
