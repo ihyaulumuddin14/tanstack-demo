@@ -1,5 +1,9 @@
 import { connectDB } from "@/db/connection";
 import { Post } from "@/db/models/post.model";
+import { auth } from "@/lib/auth";
+import { ObjectId } from "mongodb";
+import { Types } from "mongoose";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -9,6 +13,14 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   await connectDB();
 
   const { id } = await params;
@@ -29,13 +41,36 @@ export async function PATCH(
     );
   }
 
-  const delta = action === "like" ? 1 : -1;
-  post.likes = Math.max(0, post.likes + delta);
+  const viewerId = session.user.id;
+  const viewerObjectId = new ObjectId(viewerId);
+  const likedBy = (post.likedBy ?? []) as Types.ObjectId[];
+  const alreadyLiked = likedBy.some((likeId) => likeId.toString() === viewerId);
+
+  if (action === "like" && !alreadyLiked) {
+    post.likedBy = [...likedBy, viewerObjectId];
+    post.likesCount = (post.likesCount ?? 0) + 1;
+  }
+
+  if (action === "unlike" && alreadyLiked) {
+    post.likedBy = likedBy.filter((likeId) => likeId.toString() !== viewerId);
+    post.likesCount = Math.max(0, (post.likesCount ?? 0) - 1);
+  }
 
   await post.save();
 
+  const plain = post.toObject();
+  const likedByResult = (plain.likedBy ?? []).map(
+    (likeId: { toString?: () => string }) =>
+      likeId?.toString?.() ?? String(likeId),
+  );
+  const likedByMe = likedByResult.includes(viewerId);
+
   return NextResponse.json({
-    ...post.toObject(),
-    likedByMe: action === "like",
+    ...plain,
+    _id: plain._id?.toString?.() ?? plain._id,
+    authorId: plain.authorId?.toString?.() ?? plain.authorId,
+    likedBy,
+    likesCount: plain.likesCount ?? likedBy.length ?? 0,
+    likedByMe,
   });
 }

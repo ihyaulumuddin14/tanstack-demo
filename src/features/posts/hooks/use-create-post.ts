@@ -25,10 +25,12 @@ export function useCreatePost() {
       const optimisticPost: IPost = {
         _id: `optimistic-${Date.now()}`,
         content: input.content,
-        likes: 0,
+        likesCount: 0,
+        likedBy: [],
         authorId: "me",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        likedByMe: false,
       };
 
       // Manual cache manipulation: insert immediately for an instant UI update.

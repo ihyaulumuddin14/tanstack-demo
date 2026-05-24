@@ -29,6 +29,7 @@ export function useLikePost() {
         if (!old?.posts) return old;
 
         const delta = variables.action === "like" ? 1 : -1;
+        const optimisticViewerId = "me";
 
         return {
           ...old,
@@ -36,7 +37,18 @@ export function useLikePost() {
             post._id === variables.postId
               ? {
                   ...post,
-                  likes: Math.max(0, post.likes + delta),
+                  likesCount: Math.max(0, post.likesCount + delta),
+                  likedBy:
+                    variables.action === "like"
+                      ? Array.from(
+                          new Set([
+                            ...(post.likedBy ?? []),
+                            optimisticViewerId,
+                          ]),
+                        )
+                      : (post.likedBy ?? []).filter(
+                          (id) => id !== optimisticViewerId,
+                        ),
                   likedByMe: variables.action === "like",
                 }
               : post,

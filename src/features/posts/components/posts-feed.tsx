@@ -2,9 +2,74 @@
 
 import { usePosts } from "../hooks/use-posts";
 import { useLikePost } from "../hooks/use-like-post";
+import { useUserById } from "@/features/auth/hooks/use-user-by-id";
+import type { IPost } from "../types";
 import { Loader2, AlertCircle, RefreshCw, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+
+type PostCardProps = {
+  post: IPost;
+  likeMutation: ReturnType<typeof useLikePost>;
+};
+
+function PostCard({ post, likeMutation }: PostCardProps) {
+  const { data: author, isPending: isAuthorPending } = useUserById(
+    post.authorId,
+  );
+  const authorLabel = isAuthorPending
+    ? "Loading author..."
+    : (author?.name ?? author?.email ?? "Unknown author");
+
+  const likedByMe = post.likedByMe ?? false;
+  const isMutatingPost =
+    likeMutation.isPending && likeMutation.variables?.postId === post._id;
+  const nextAction = likedByMe ? "unlike" : "like";
+
+  return (
+    <Card
+      key={post._id}
+      className="transition-shadow hover:shadow-md"
+    >
+      <CardContent className="p-4 sm:p-6">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed sm:text-base">
+          {post.content}
+        </p>
+        <div className="mt-4 flex items-center justify-between text-xs font-medium text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <span>Posted recently</span>
+            <span>by {authorLabel}</span>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={likedByMe ? "text-rose-600" : "text-muted-foreground"}
+            aria-pressed={likedByMe}
+            disabled={isMutatingPost}
+            onClick={() =>
+              likeMutation.mutate({
+                postId: post._id,
+                action: nextAction,
+              })
+            }
+          >
+            {isMutatingPost ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Heart
+                className={
+                  likedByMe ? "size-3 text-rose-600 fill-rose-600" : "size-3"
+                }
+              />
+            )}
+            {likedByMe ? "Unlike" : "Like"} {post.likesCount}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function PostsFeed() {
   // isPending = First time loading (no cache yet)
@@ -54,57 +119,13 @@ export function PostsFeed() {
         </div>
       )}
 
-      {data.posts.map((post) => {
-        const likedByMe = post.likedByMe ?? false;
-        const isMutatingPost =
-          likeMutation.isPending && likeMutation.variables?.postId === post._id;
-        const nextAction = likedByMe ? "unlike" : "like";
-
-        return (
-          <Card
-            key={post._id}
-            className="transition-shadow hover:shadow-md"
-          >
-            <CardContent className="p-4 sm:p-6">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed sm:text-base">
-                {post.content}
-              </p>
-              <div className="mt-4 flex items-center justify-between text-xs font-medium text-muted-foreground">
-                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={
-                    likedByMe ? "text-rose-600" : "text-muted-foreground"
-                  }
-                  aria-pressed={likedByMe}
-                  disabled={isMutatingPost}
-                  onClick={() =>
-                    likeMutation.mutate({
-                      postId: post._id,
-                      action: nextAction,
-                    })
-                  }
-                >
-                  {isMutatingPost ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <Heart
-                      className={
-                        likedByMe
-                          ? "size-3 text-rose-600 fill-rose-600"
-                          : "size-3"
-                      }
-                    />
-                  )}
-                  {likedByMe ? "Unlike" : "Like"} {post.likes}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {data.posts.map((post) => (
+        <PostCard
+          key={post._id}
+          post={post}
+          likeMutation={likeMutation}
+        />
+      ))}
     </div>
   );
 }

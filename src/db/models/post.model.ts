@@ -1,28 +1,30 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
-import { IPost } from "@/features/posts/types";
-
-// Extends IPost with Mongoose Document properties
-export interface IPostDocument extends Omit<IPost, "_id">, Document {}
+import { IPostDocument } from "@/features/posts/types";
+import mongoose, { Model, Schema } from "mongoose";
 
 const PostSchema = new Schema<IPostDocument>(
   {
-    content: {
-      type: String,
-      required: true,
-    },
-    likes: {
+    content: String,
+
+    likesCount: {
       type: Number,
       default: 0,
     },
+
+    likedBy: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "user",
+      },
+    ],
+
     authorId: {
-      type: String,
-      required: true,
-      index: true, // Useful for querying posts by a specific user
+      type: Schema.Types.ObjectId,
+      ref: "user",
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
-  }
+    timestamps: true,
+  },
 );
 
 // Check if model exists to prevent overwrite error in Next.js hot reloading
