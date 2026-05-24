@@ -6,7 +6,7 @@ import type { GetPostsResponse } from "../api/get-posts";
 import type { IPost } from "../types";
 
 type CreatePostContext = {
-  previousFeed?: InfiniteData<GetPostsResponse>;
+  previousFeeds?: Array<[readonly unknown[], InfiniteData<GetPostsResponse> | undefined]>;
   optimisticId: string;
 };
 
@@ -17,11 +17,11 @@ export function useCreatePost() {
     mutationFn: createPost,
 
     onMutate: async (input: CreatePostInput): Promise<CreatePostContext> => {
-      await queryClient.cancelQueries({ queryKey: postKeys.feed() });
+      await queryClient.cancelQueries({ queryKey: postKeys.search("") });
 
-      const previousFeed = queryClient.getQueryData<
+      const previousFeeds = queryClient.getQueriesData<
         InfiniteData<GetPostsResponse>
-      >(postKeys.feed());
+      >({ queryKey: postKeys.search("") });
 
       const optimisticPost: IPost = {
         _id: `optimistic-${Date.now()}`,
@@ -35,95 +35,109 @@ export function useCreatePost() {
       };
 
       // Manual cache manipulation: insert immediately for an instant UI update.
-      queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
-        postKeys.feed(),
-        (old) => {
-          if (!old) {
+      const searchQueries = queryClient.getQueriesData<
+        InfiniteData<GetPostsResponse>
+      >({ queryKey: postKeys.search("") });
+
+      searchQueries.forEach(([queryKey]) => {
+        queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
+          queryKey,
+          (old) => {
+            if (!old) {
+              return {
+                pages: [{ posts: [optimisticPost], nextCursor: null }],
+                pageParams: [null],
+              };
+            }
+
+            const [firstPage, ...restPages] = old.pages;
+
+            const updatedFirstPage = firstPage
+              ? {
+                  ...firstPage,
+                  posts: [optimisticPost, ...firstPage.posts],
+                }
+              : { posts: [optimisticPost], nextCursor: null };
+
             return {
-              pages: [{ posts: [optimisticPost], nextCursor: null }],
-              pageParams: [null],
+              ...old,
+              pages: [updatedFirstPage, ...restPages],
             };
-          }
+          },
+        );
+      });
 
-          const [firstPage, ...restPages] = old.pages;
-
-          const updatedFirstPage = firstPage
-            ? {
-                ...firstPage,
-                posts: [optimisticPost, ...firstPage.posts],
-              }
-            : { posts: [optimisticPost], nextCursor: null };
-
-          return {
-            ...old,
-            pages: [updatedFirstPage, ...restPages],
-          };
-        },
-      );
-
-      return { previousFeed, optimisticId: optimisticPost._id };
+      return { previousFeeds, optimisticId: optimisticPost._id };
     },
 
     onError: (_error, _input, context) => {
-      if (context?.previousFeed) {
-        queryClient.setQueryData(postKeys.feed(), context.previousFeed);
+      if (context?.previousFeeds?.length) {
+        context.previousFeeds.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
         return;
       }
 
-      queryClient.removeQueries({ queryKey: postKeys.feed(), exact: true });
+      queryClient.removeQueries({ queryKey: postKeys.search("") });
     },
 
     onSuccess: (createdPost, _input, context) => {
       // Cache synchronization: swap optimistic post for the server-confirmed one.
-      queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
-        postKeys.feed(),
-        (old) => {
-          if (!old) {
-            return {
-              pages: [{ posts: [createdPost], nextCursor: null }],
-              pageParams: [null],
-            };
-          }
+      const searchQueries = queryClient.getQueriesData<
+        InfiniteData<GetPostsResponse>
+      >({ queryKey: postKeys.search("") });
 
-          const pages = old.pages.map((page) => {
-            const hasOptimistic = page.posts.some(
-              (post) => post._id === context?.optimisticId,
+      searchQueries.forEach(([queryKey]) => {
+        queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
+          queryKey,
+          (old) => {
+            if (!old) {
+              return {
+                pages: [{ posts: [createdPost], nextCursor: null }],
+                pageParams: [null],
+              };
+            }
+
+            const pages = old.pages.map((page) => {
+              const hasOptimistic = page.posts.some(
+                (post) => post._id === context?.optimisticId,
+              );
+
+              if (!hasOptimistic) return page;
+
+              return {
+                ...page,
+                posts: page.posts.map((post) =>
+                  post._id === context?.optimisticId ? createdPost : post,
+                ),
+              };
+            });
+
+            const hasAnyOptimistic = pages.some((page) =>
+              page.posts.some((post) => post._id === createdPost._id),
             );
 
-            if (!hasOptimistic) return page;
-
-            return {
-              ...page,
-              posts: page.posts.map((post) =>
-                post._id === context?.optimisticId ? createdPost : post,
-              ),
-            };
-          });
-
-          const hasAnyOptimistic = pages.some((page) =>
-            page.posts.some((post) => post._id === createdPost._id),
-          );
-
-          return hasAnyOptimistic
-            ? { ...old, pages }
-            : {
-                ...old,
-                pages: [
-                  {
-                    ...pages[0],
-                    posts: [createdPost, ...(pages[0]?.posts ?? [])],
-                  },
-                  ...pages.slice(1),
-                ],
-              };
-        },
-      );
+            return hasAnyOptimistic
+              ? { ...old, pages }
+              : {
+                  ...old,
+                  pages: [
+                    {
+                      ...pages[0],
+                      posts: [createdPost, ...(pages[0]?.posts ?? [])],
+                    },
+                    ...pages.slice(1),
+                  ],
+                };
+          },
+        );
+      });
     },
 
     onSettled: () => {
       // Invalidate inactive feeds to keep data fresh without refetching live UI.
       queryClient.invalidateQueries({
-        queryKey: postKeys.feed(),
+        queryKey: postKeys.search(""),
         refetchType: "inactive",
       });
     },

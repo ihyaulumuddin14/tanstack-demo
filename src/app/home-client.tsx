@@ -35,7 +35,7 @@ export function HomeClient() {
         </div>
 
         <div className="flex items-center gap-3">
-          <NotificationBadge />
+          {/* <NotificationBadge /> */}
           <Button
             id="signout-btn"
             variant="outline"

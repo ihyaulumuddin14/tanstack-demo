@@ -11,8 +11,8 @@ export function useInfinitePosts(query: string) {
       getPosts({ cursor: pageParam ?? null, limit: PAGE_SIZE, query }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: 2 * 1000,
-    gcTime: 5 * 1000,
-    retry: 1,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1
   });
 }
