@@ -1,6 +1,6 @@
 "use client";
 
-import { usePosts } from "../hooks/use-posts";
+import { useInfinitePosts } from "../hooks/use-infinite-posts";
 import { useLikePost } from "../hooks/use-like-post";
 import { useUserById } from "@/features/auth/hooks/use-user-by-id";
 import type { IPost } from "../types";
@@ -98,8 +98,19 @@ function PostCard({ post, likeMutation }: PostCardProps) {
 export function PostsFeed() {
   // isPending = First time loading (no cache yet)
   // isFetching = Any time a request is in flight (including background refetches)
-  const { data, isPending, isError, error, isFetching } = usePosts();
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    isFetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfinitePosts();
   const likeMutation = useLikePost();
+  const posts = data?.pages.flatMap((page) => page.posts) ?? [];
+  const isBackgroundFetching = isFetching && !isFetchingNextPage;
 
   // 1. LOADING STATE: Shown ONLY when we have no data in cache
   if (isPending) {
@@ -123,7 +134,7 @@ export function PostsFeed() {
   }
 
   // 3. EMPTY STATE
-  if (!data?.posts || data.posts.length === 0) {
+  if (posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-16 text-muted-foreground">
         <p className="text-sm font-medium">No posts yet.</p>
@@ -136,20 +147,41 @@ export function PostsFeed() {
 
   return (
     <div className="relative space-y-4">
-      {isFetching && (
+      {isBackgroundFetching && (
         <div className="absolute -top-8 right-0 flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary shadow-sm">
           <RefreshCw className="size-3 animate-spin" />
           Background Refetching
         </div>
       )}
 
-      {data.posts.map((post) => (
+      {posts.map((post) => (
         <PostCard
           key={post._id}
           post={post}
           likeMutation={likeMutation}
         />
       ))}
+
+      {hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+          >
+            {isFetchingNextPage ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Loading more
+              </>
+            ) : (
+              "Load more"
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

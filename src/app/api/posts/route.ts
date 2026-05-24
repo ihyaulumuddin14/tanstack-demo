@@ -3,27 +3,50 @@ import { Post } from "@/db/models/post.model";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { ObjectId } from "mongodb";
 
 // Utility for fake latency
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export async function GET() {
+const PAGE_SIZE = 5;
+
+export async function GET(req: Request) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   const viewerId = session?.user?.id ?? null;
+
+  const { searchParams } = new URL(req.url);
+  const cursor = searchParams.get("cursor");
+  const limitParam = Number(searchParams.get("limit"));
+  const limit =
+    Number.isFinite(limitParam) && limitParam > 0
+      ? Math.min(limitParam, 20)
+      : PAGE_SIZE;
 
   await connectDB();
 
   // Fake latency to make TanStack Query loading states observable
   await delay(1500);
 
-  // Sort by newest first
-  const posts = await Post.find().sort({
-    createdAt: -1,
-  });
+  const query: Record<string, unknown> = {};
 
-  const normalizedPosts = posts.map((post) => {
+  if (cursor && ObjectId.isValid(cursor)) {
+    query._id = { $lt: new ObjectId(cursor) };
+  }
+
+  // Cursor pagination: fetch one extra to determine the next cursor.
+  const posts = await Post.find(query)
+    .sort({ _id: -1 })
+    .limit(limit + 1);
+
+  const hasMore = posts.length > limit;
+  const pagePosts = hasMore ? posts.slice(0, limit) : posts;
+  const nextCursor = hasMore
+    ? (pagePosts[pagePosts.length - 1]?._id?.toString?.() ?? null)
+    : null;
+
+  const normalizedPosts = pagePosts.map((post) => {
     const plain = post.toObject();
     const likedBy = (plain.likedBy ?? []).map(
       (likeId: { toString?: () => string }) =>
@@ -44,7 +67,7 @@ export async function GET() {
   // Return shape structured for future infinite query pagination
   return NextResponse.json({
     posts: normalizedPosts,
-    nextCursor: null, // Placeholder for cursor-based pagination
+    nextCursor,
   });
 }
 

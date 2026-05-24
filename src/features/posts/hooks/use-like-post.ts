@@ -1,3 +1,4 @@
+import type { InfiniteData } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   likePost,
@@ -8,7 +9,7 @@ import type { GetPostsResponse } from "../api/get-posts";
 import { postKeys } from "../lib/query-keys";
 
 type LikePostContext = {
-  previousFeed?: GetPostsResponse;
+  previousFeed?: InfiniteData<GetPostsResponse>;
 };
 
 export function useLikePost() {
@@ -21,40 +22,46 @@ export function useLikePost() {
       // Optimistic UI: update the cache before the server responds.
       await queryClient.cancelQueries({ queryKey: postKeys.feed() });
 
-      const previousFeed = queryClient.getQueryData<GetPostsResponse>(
+      const previousFeed = queryClient.getQueryData<
+        InfiniteData<GetPostsResponse>
+      >(postKeys.feed());
+
+      queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
         postKeys.feed(),
+        (old) => {
+          if (!old) return old;
+
+          const delta = variables.action === "like" ? 1 : -1;
+          const optimisticViewerId = "me";
+
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              posts: page.posts.map((post) =>
+                post._id === variables.postId
+                  ? {
+                      ...post,
+                      likesCount: Math.max(0, post.likesCount + delta),
+                      likedBy:
+                        variables.action === "like"
+                          ? Array.from(
+                              new Set([
+                                ...(post.likedBy ?? []),
+                                optimisticViewerId,
+                              ]),
+                            )
+                          : (post.likedBy ?? []).filter(
+                              (id) => id !== optimisticViewerId,
+                            ),
+                      likedByMe: variables.action === "like",
+                    }
+                  : post,
+              ),
+            })),
+          };
+        },
       );
-
-      queryClient.setQueryData<GetPostsResponse>(postKeys.feed(), (old) => {
-        if (!old?.posts) return old;
-
-        const delta = variables.action === "like" ? 1 : -1;
-        const optimisticViewerId = "me";
-
-        return {
-          ...old,
-          posts: old.posts.map((post) =>
-            post._id === variables.postId
-              ? {
-                  ...post,
-                  likesCount: Math.max(0, post.likesCount + delta),
-                  likedBy:
-                    variables.action === "like"
-                      ? Array.from(
-                          new Set([
-                            ...(post.likedBy ?? []),
-                            optimisticViewerId,
-                          ]),
-                        )
-                      : (post.likedBy ?? []).filter(
-                          (id) => id !== optimisticViewerId,
-                        ),
-                  likedByMe: variables.action === "like",
-                }
-              : post,
-          ),
-        };
-      });
 
       return { previousFeed };
     },
@@ -68,23 +75,29 @@ export function useLikePost() {
 
     onSuccess: (updatedPost, variables) => {
       // Mutation lifecycle: reconcile optimistic cache with server data.
-      queryClient.setQueryData<GetPostsResponse>(postKeys.feed(), (old) => {
-        if (!old?.posts) return old;
+      queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
+        postKeys.feed(),
+        (old) => {
+          if (!old) return old;
 
-        return {
-          ...old,
-          posts: old.posts.map((post) =>
-            post._id === variables.postId
-              ? {
-                  ...post,
-                  ...updatedPost,
-                  likedByMe:
-                    updatedPost.likedByMe ?? variables.action === "like",
-                }
-              : post,
-          ),
-        };
-      });
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              posts: page.posts.map((post) =>
+                post._id === variables.postId
+                  ? {
+                      ...post,
+                      ...updatedPost,
+                      likedByMe:
+                        updatedPost.likedByMe ?? variables.action === "like",
+                    }
+                  : post,
+              ),
+            })),
+          };
+        },
+      );
     },
 
     onSettled: () => {

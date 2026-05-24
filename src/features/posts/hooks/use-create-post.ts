@@ -1,3 +1,4 @@
+import type { InfiniteData } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createPost, type CreatePostInput } from "../api/create-post";
 import { postKeys } from "../lib/query-keys";
@@ -5,7 +6,7 @@ import type { GetPostsResponse } from "../api/get-posts";
 import type { IPost } from "../types";
 
 type CreatePostContext = {
-  previousFeed?: GetPostsResponse;
+  previousFeed?: InfiniteData<GetPostsResponse>;
   optimisticId: string;
 };
 
@@ -18,9 +19,9 @@ export function useCreatePost() {
     onMutate: async (input: CreatePostInput): Promise<CreatePostContext> => {
       await queryClient.cancelQueries({ queryKey: postKeys.feed() });
 
-      const previousFeed = queryClient.getQueryData<GetPostsResponse>(
-        postKeys.feed(),
-      );
+      const previousFeed = queryClient.getQueryData<
+        InfiniteData<GetPostsResponse>
+      >(postKeys.feed());
 
       const optimisticPost: IPost = {
         _id: `optimistic-${Date.now()}`,
@@ -34,14 +35,31 @@ export function useCreatePost() {
       };
 
       // Manual cache manipulation: insert immediately for an instant UI update.
-      queryClient.setQueryData<GetPostsResponse>(postKeys.feed(), (old) => {
-        const posts = old?.posts ?? [];
+      queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
+        postKeys.feed(),
+        (old) => {
+          if (!old) {
+            return {
+              pages: [{ posts: [optimisticPost], nextCursor: null }],
+              pageParams: [null],
+            };
+          }
 
-        return {
-          posts: [optimisticPost, ...posts],
-          nextCursor: old?.nextCursor ?? null,
-        };
-      });
+          const [firstPage, ...restPages] = old.pages;
+
+          const updatedFirstPage = firstPage
+            ? {
+                ...firstPage,
+                posts: [optimisticPost, ...firstPage.posts],
+              }
+            : { posts: [optimisticPost], nextCursor: null };
+
+          return {
+            ...old,
+            pages: [updatedFirstPage, ...restPages],
+          };
+        },
+      );
 
       return { previousFeed, optimisticId: optimisticPost._id };
     },
@@ -57,23 +75,49 @@ export function useCreatePost() {
 
     onSuccess: (createdPost, _input, context) => {
       // Cache synchronization: swap optimistic post for the server-confirmed one.
-      queryClient.setQueryData<GetPostsResponse>(postKeys.feed(), (old) => {
-        if (!old?.posts) {
-          return { posts: [createdPost], nextCursor: null };
-        }
+      queryClient.setQueryData<InfiniteData<GetPostsResponse>>(
+        postKeys.feed(),
+        (old) => {
+          if (!old) {
+            return {
+              pages: [{ posts: [createdPost], nextCursor: null }],
+              pageParams: [null],
+            };
+          }
 
-        const hasOptimistic = old.posts.some(
-          (post) => post._id === context?.optimisticId,
-        );
+          const pages = old.pages.map((page) => {
+            const hasOptimistic = page.posts.some(
+              (post) => post._id === context?.optimisticId,
+            );
 
-        const posts = hasOptimistic
-          ? old.posts.map((post) =>
-              post._id === context?.optimisticId ? createdPost : post,
-            )
-          : [createdPost, ...old.posts];
+            if (!hasOptimistic) return page;
 
-        return { ...old, posts };
-      });
+            return {
+              ...page,
+              posts: page.posts.map((post) =>
+                post._id === context?.optimisticId ? createdPost : post,
+              ),
+            };
+          });
+
+          const hasAnyOptimistic = pages.some((page) =>
+            page.posts.some((post) => post._id === createdPost._id),
+          );
+
+          return hasAnyOptimistic
+            ? { ...old, pages }
+            : {
+                ...old,
+                pages: [
+                  {
+                    ...pages[0],
+                    posts: [createdPost, ...(pages[0]?.posts ?? [])],
+                  },
+                  ...pages.slice(1),
+                ],
+              };
+        },
+      );
     },
 
     onSettled: () => {
