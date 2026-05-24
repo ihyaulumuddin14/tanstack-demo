@@ -1,6 +1,6 @@
 import { connectDB } from "@/db/connection";
 import { Post } from "@/db/models/post.model";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -11,6 +11,7 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -52,6 +53,7 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -112,6 +114,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
