@@ -1,11 +1,12 @@
 import { connectDB } from "@/db/connection";
 import { Notification } from "@/db/models/notification.model";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST() {
   // Persist server state so polling reflects real data across sessions.
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
