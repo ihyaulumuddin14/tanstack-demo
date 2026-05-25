@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_AUTH_URL: ${NEXT_PUBLIC_AUTH_URL}
+        AUTH_URL: ${AUTH_URL}
+        MONGODB_URI: ${MONGODB_URI}
+
+    image: tanstackdemo-web
+
+    ports:
+      - "3000:3000"
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    depends_on:
+      - mongodb
+
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+
+    container_name: mongodb
+
+    ports:
+      - "27017:27017"
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+
+    volumes:
+      - mongodb_data:/data/db
+
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
