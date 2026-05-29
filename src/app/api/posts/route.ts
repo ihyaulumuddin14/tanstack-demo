@@ -1,7 +1,7 @@
 import { connectDB } from "@/db/connection";
 import { Post } from "@/db/models/post.model";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { ObjectId } from "mongodb";
 
@@ -11,6 +11,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const PAGE_SIZE = 5;
 
 export async function GET(req: Request) {
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -78,6 +79,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   // Extract user session for authorId
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });

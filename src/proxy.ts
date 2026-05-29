@@ -1,17 +1,23 @@
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const SESSION_COOKIE_NAME = "better-auth.session_token";
+const SESSION_COOKIE_NAMES = [
+  "__Secure-better-auth.session_token",
+  "better-auth.session_token",
+];
 
 export async function proxy(request: NextRequest) {
-  const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const sessionToken = SESSION_COOKIE_NAMES.map(
+    (name) => request.cookies.get(name)?.value,
+  ).find(Boolean);
 
   if (!sessionToken) {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
   try {
+    const auth = await getAuth();
     const session = await auth.api.getSession({
       headers: request.headers,
     });
