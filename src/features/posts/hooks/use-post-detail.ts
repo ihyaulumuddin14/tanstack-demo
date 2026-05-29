@@ -7,7 +7,7 @@ export function usePostDetail(postId: string, enabled = true) {
     // Detail views use a dedicated key so list pagination and detail fetches
     // stay isolated (no normalized cache required in TanStack Query).
     queryKey: postKeys.detail(postId),
-    queryFn: () => getPostDetail(postId),
+    queryFn: getPostDetail,
     enabled,
     staleTime: 2 * 60 * 1000,
   });
