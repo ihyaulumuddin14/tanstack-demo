@@ -20,7 +20,7 @@ export function HomeClient() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Feed</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Feed V1</h1>
           <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
             <User className="size-3.5" />
             {showUserSkeleton ? (
